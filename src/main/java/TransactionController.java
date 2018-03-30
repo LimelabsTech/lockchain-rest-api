@@ -6,6 +6,7 @@ import org.web3j.crypto.WalletUtils;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.methods.response.EthGetBalance;
+import org.web3j.protocol.core.methods.response.EthGetTransactionCount;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.protocol.exceptions.TransactionException;
 import org.web3j.protocol.http.HttpService;
@@ -18,19 +19,15 @@ import java.io.FileWriter;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 
-
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 
-
-
 @RestController
 @RequestMapping(method = RequestMethod.POST)
 public class HelloController {
-	
 
 	public TransactionReceipt sendFundsToAccount(String amount, String recipient)
 			throws InterruptedException, TransactionException, Exception {
@@ -48,9 +45,17 @@ public class HelloController {
 
 		// TODO: Need to make a config file from which we should get information about
 		// the environment and set it to the server
-//		Web3j web3 = Web3j.build(new HttpService()); // defaults to
-	 Web3j web3 = Web3j.build(new HttpService("https://ropsten.infura.io/Up5uvBHSCSqtOmnlhL87"));																								// http://localhost:8545/
-		
+		// Web3j web3 = Web3j.build(new HttpService()); // defaults to
+		Web3j web3 = Web3j.build(new HttpService("https://ropsten.infura.io/Up5uvBHSCSqtOmnlhL87")); // http://localhost:8545/
+
+		EthGetTransactionCount ethGetTransactionCount = web3
+				.ethGetTransactionCount(recipient, DefaultBlockParameterName.PENDING).send();
+		BigInteger nonce = ethGetTransactionCount.getTransactionCount();// http://localhost:8545/
+
+		if (nonce.intValue() > 5) {
+			throw new Exception("The nonce of the user is too big");
+		}
+
 		// Create temp file from the json string to create the credentialls
 		File tempWalletFile = File.createTempFile("temp-wallet-file", ".tmp");
 		BufferedWriter writer = new BufferedWriter(new FileWriter(tempWalletFile));
@@ -67,6 +72,7 @@ public class HelloController {
 		BigInteger wei = ethGetBalance.getBalance();
 		return transactionReceipt;
 	}
+
 	@CrossOrigin(origins = "*")
 	@RequestMapping(value = "/sendFundsToAccount", method = RequestMethod.POST)
 	public TransactionReceipt sendEther(@RequestBody FundTransactionParams fundParams)
